@@ -9,10 +9,6 @@ def log_message(msg):
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{current_time}] {msg}")
 
-
-# Токен бота
-
-
 # Создание бота
 log_message("Инициализация бота...")
 bot = telebot.TeleBot(TOKEN)
@@ -59,4 +55,5 @@ while True:
     except Exception as e:
         log_message(f"Ошибка: {e}")
         log_message("Перезапуск через 3 секунды...")
+
         time.sleep(3)
