@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Событие #{{ event.id }} - Moderation Dashboard{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Главная</a></li>
+        <li class="breadcrumb-item active">Событие #{{ event.id }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Детали события #{{ event.id }}</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th style="width: 200px;">Дата создания:</th>
+                        <td>{{ event.created_at_formatted }}</td>
+                    </tr>
+                    <tr>
+                        <th>Chat ID:</th>
+                        <td>
+                            <code>{{ event.chat_id }}</code>
+                            <span class="badge bg-light text-dark">{{ event.chat_kind }}</span>
+                            {% if event.chat_link %}
+                            <a class="btn btn-sm btn-outline-primary ms-2" href="{{ event.chat_link }}" target="_blank" rel="noopener">
+                                Открыть сообщение
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>User ID:</th>
+                        <td>{{ event.user_id or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Username:</th>
+                        <td>{% if event.username %}@{{ event.username }}{% else %}—{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>Message ID:</th>
+                        <td>{{ event.message_id or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Тип контента:</th>
+                        <td>{{ event.content_type }}</td>
+                    </tr>
+                    <tr>
+                        <th>File ID:</th>
+                        <td><code>{{ event.file_id or '—' }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Текст:</th>
+                        <td>
+                            <div class="border p-3 bg-light">
+                                {{ event.text_excerpt or '—' }}
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-{{ event.risk_color }} text-white">
+                <h5 class="mb-0">Результат модерации</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Статус сообщения:</th>
+                        <td>
+                            {% if event.message_status == 'deleted' %}
+                                <span class="badge bg-secondary">Удалено</span>
+                            {% elif event.message_status == 'delete_failed' %}
+                                <span class="badge bg-danger">Ошибка удаления</span>
+                            {% elif event.message_status == 'present' %}
+                                <span class="badge bg-success">В чате</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Неизвестно</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Удалено в:</th>
+                        <td>{{ event.deleted_at_formatted or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ошибка удаления:</th>
+                        <td><code>{{ event.delete_error or '—' }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Decision:</th>
+                        <td><span class="risk-{{ event.risk_color }}">{{ event.decision|upper }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Reason:</th>
+                        <td><code>{{ event.reason or '—' }}</code></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Категории</h5>
+            </div>
+            <div class="card-body">
+                {% if event.categories %}
+                    <div class="json-view">{{ event.categories|tojson(indent=2) }}</div>
+                {% else %}
+                    <p class="text-muted">Нет данных</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Scores</h5>
+            </div>
+            <div class="card-body">
+                {% if event.scores %}
+                    <div class="json-view">{{ event.scores|tojson(indent=2) }}</div>
+                {% else %}
+                    <p class="text-muted">Нет данных</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if event.review_label %}
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Ручная разметка</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Label:</th>
+                        <td><span class="badge bg-secondary">{{ event.review_label }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Reviewer ID:</th>
+                        <td>{{ event.reviewer_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Review at:</th>
+                        <td>{{ event.review_at_formatted or '—' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="/" class="btn btn-primary">Назад к списку</a>
+    {% if event.message_id and event.message_status != 'deleted' %}
+    <form method="POST" action="/event/{{ event.id }}/delete-message" class="d-inline">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('Удалить сообщение {{ event.message_id }} в Telegram?')">
+            Удалить сообщение в Telegram
+        </button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
